@@ -43,6 +43,7 @@ def create_ball(x, radius):
     space.add(body, shape)  
     return shape  
   
+
 # ゲームループ  
 running = True  
 clock = pygame.time.Clock()  
@@ -50,14 +51,18 @@ while running:
     for event in pygame.event.get():  
         if event.type == pygame.QUIT:  
             running = False  
-        # マウスクリックでボールを生成  
+                # マウスクリックでボールを生成  
+        # マウスクリックでボールを生成する部分の変更  
         if event.type == pygame.MOUSEBUTTONDOWN:  
-            x, _ = pygame.mouse.get_pos()  # クリックした位置のX座標を取得  
             # 8種類の大きさのボールからランダムに選ぶ  
             sizes = [5, 10, 15, 20, 25, 30, 35, 40]  # ボールの半径の例  
             radius = random.choice(sizes)  # ランダムにサイズを選択  
+            x, _ = pygame.mouse.get_pos()  # クリックした位置のX座標を取得  
+            # クリックされたX座標が箱の範囲外の場合、範囲内に制限する  
+            x = max(50 + radius, min(x, 550 - radius))  
             create_ball(x, radius)  # Y座標は固定の値を使用  
   
+                
     # 物理シミュレーションを進める  
     space.step(1/50)  
   
