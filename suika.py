@@ -43,6 +43,50 @@ def create_ball(x, radius):
     space.add(body, shape)  
     return shape  
   
+# ボールにIDを割り当てるためのグローバル変数  
+ball_id_counter = 0  
+  
+# ボールが合体する際に呼び出されるコールバック関数  
+def merge_balls(arbiter, space, data):  
+    # 衝突した2つのボールを取得  
+    ball_shape1, ball_shape2 = arbiter.shapes  
+    if ball_shape1.radius == ball_shape2.radius:  
+        # 合体して新しいボールを作成する  
+        new_radius = ball_shape1.radius + 5  # 新しい半径を決定するロジックが必要  
+        x = (ball_shape1.body.position.x + ball_shape2.body.position.x) / 2  
+        y = (ball_shape1.body.position.y + ball_shape2.body.position.y) / 2  
+          
+        # 古いボールを削除する  
+        space.remove(ball_shape1, ball_shape1.body)  
+        space.remove(ball_shape2, ball_shape2.body)  
+          
+        # 新しいボールを作成  
+        create_ball(x, new_radius)  
+          
+    return True  
+  
+# ボールを生成して物理空間に追加する関数にIDを割り当てる機能を追加  
+def create_ball(x, radius):  
+    global ball_id_counter  
+    y = 100  
+    mass = 1  
+    inertia = pymunk.moment_for_circle(mass, 0, radius)  
+    body = pymunk.Body(mass, inertia)  
+    body.position = x, y  
+    shape = pymunk.Circle(body, radius)  
+    shape.elasticity = 0.8  
+    shape.collision_type = 1  # 衝突タイプを設定  
+    shape.ball_id = ball_id_counter  # ボールにユニークなIDを割り当てる  
+    ball_id_counter += 1  
+    space.add(body, shape)  
+    return shape  
+  
+# 衝突ハンドラーを設定  
+collision_handler = space.add_collision_handler(1, 1)  
+collision_handler.post_solve = merge_balls  
+  
+# ゲームループと他の部分は変更なし  
+
 
 # ゲームループ  
 running = True  
