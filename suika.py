@@ -32,9 +32,8 @@ right_wall.elasticity = 0.8
 space.add(floor, left_wall, right_wall)  
   
 # ボールを生成して物理空間に追加する関数  
-def create_ball(radius):  
-    x = random.randint(50, 550)  # 箱の幅に応じてランダムなX座標を生成  
-    y = 100  # 箱の上辺のY座標を指定  
+def create_ball(x, radius):  
+    y = 100  # 固定のY座標  
     mass = 1  
     inertia = pymunk.moment_for_circle(mass, 0, radius)  
     body = pymunk.Body(mass, inertia)  
@@ -43,7 +42,6 @@ def create_ball(radius):
     shape.elasticity = 0.8  
     space.add(body, shape)  
     return shape  
-   
   
 # ゲームループ  
 running = True  
@@ -52,12 +50,13 @@ while running:
     for event in pygame.event.get():  
         if event.type == pygame.QUIT:  
             running = False  
-        # マウスクリックではなく、一定間隔でボールを生成  
+        # マウスクリックでボールを生成  
         if event.type == pygame.MOUSEBUTTONDOWN:  
+            x, _ = pygame.mouse.get_pos()  # クリックした位置のX座標を取得  
             # 8種類の大きさのボールからランダムに選ぶ  
             sizes = [5, 10, 15, 20, 25, 30, 35, 40]  # ボールの半径の例  
             radius = random.choice(sizes)  # ランダムにサイズを選択  
-            create_ball(radius)  
+            create_ball(x, radius)  # Y座標は固定の値を使用  
   
     # 物理シミュレーションを進める  
     space.step(1/50)  
