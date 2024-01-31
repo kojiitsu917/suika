@@ -30,19 +30,7 @@ right_wall.elasticity = 0.8
    
 # 壁と床を物理空間に追加  
 space.add(floor, left_wall, right_wall)  
-  
-# ボールを生成して物理空間に追加する関数  
-def create_ball(x, radius):  
-    y = 100  # 固定のY座標  
-    mass = 1  
-    inertia = pymunk.moment_for_circle(mass, 0, radius)  
-    body = pymunk.Body(mass, inertia)  
-    body.position = x, y  
-    shape = pymunk.Circle(body, radius)  
-    shape.elasticity = 0.8  
-    space.add(body, shape)  
-    return shape  
-  
+
 # ボールにIDを割り当てるためのグローバル変数  
 ball_id_counter = 0  
   
@@ -52,7 +40,8 @@ def merge_balls(arbiter, space, data):
     ball_shape1, ball_shape2 = arbiter.shapes  
     if ball_shape1.radius == ball_shape2.radius:  
         # 合体して新しいボールを作成する  
-        new_radius = ball_shape1.radius + 5  # 新しい半径を決定するロジックが必要  
+        new_radius = size_to_next_size.get(ball_shape1.radius, ball_shape1.radius)  
+
         x = (ball_shape1.body.position.x + ball_shape2.body.position.x) / 2  
         y = (ball_shape1.body.position.y + ball_shape2.body.position.y) / 2  
           
@@ -65,21 +54,32 @@ def merge_balls(arbiter, space, data):
           
     return True  
   
-# ボールを生成して物理空間に追加する関数にIDを割り当てる機能を追加  
+# create_ball関数内でボールのサイズを管理するための辞書を作成  
+sizes = [5, 10, 20, 30, 40, 50, 60, 80]  
+size_to_next_size = {sizes[i]: sizes[i+1] for i in range(len(sizes)-1)}  
+  
+# ボールを生成して物理空間に追加する関数  
 def create_ball(x, radius):  
     global ball_id_counter  
+    # ボールが合体してサイズが大きくなった場合、次のサイズを決定する  
+    if radius in size_to_next_size:  
+        new_radius = size_to_next_size[radius]  
+    else:  
+        new_radius = radius  # 最大サイズの場合はそのままのサイズを使う  
+  
     y = 100  
     mass = 1  
-    inertia = pymunk.moment_for_circle(mass, 0, radius)  
+    inertia = pymunk.moment_for_circle(mass, 0, new_radius)  
     body = pymunk.Body(mass, inertia)  
     body.position = x, y  
-    shape = pymunk.Circle(body, radius)  
+    shape = pymunk.Circle(body, new_radius)  
     shape.elasticity = 0.8  
-    shape.collision_type = 1  # 衝突タイプを設定  
-    shape.ball_id = ball_id_counter  # ボールにユニークなIDを割り当てる  
+    shape.collision_type = 1  
+    shape.ball_id = ball_id_counter  
     ball_id_counter += 1  
     space.add(body, shape)  
     return shape  
+
   
 # 衝突ハンドラーを設定  
 collision_handler = space.add_collision_handler(1, 1)  
