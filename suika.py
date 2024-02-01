@@ -42,10 +42,15 @@ def merge_balls(arbiter, space, data):
         new_radius = size_to_next_size.get(ball_shape1.radius, ball_shape1.radius)  
         x = (ball_shape1.body.position.x + ball_shape2.body.position.x) / 2  
         y = (ball_shape1.body.position.y + ball_shape2.body.position.y) / 2  
-  
+          
         # 古いボールを削除する  
         space.remove(ball_shape1, ball_shape1.body)  
         space.remove(ball_shape2, ball_shape2.body)  
+  
+        # 新しいボールを作成する際の反発威力を、ボールの大きさに比例させる  
+        impulse_base = 50  # 基本となる反発威力  
+        impulse_multiplier = new_radius / sizes[0]  # ボールの大きさに比例する係数  
+        impulse = impulse_base * impulse_multiplier  # 最終的な反発威力  
   
         # 新しいボールを作成し、物理空間に追加する  
         new_ball = create_ball(x, y, new_radius)  
@@ -58,16 +63,18 @@ def merge_balls(arbiter, space, data):
                 dy = shape.body.position.y - y  
                 distance = (dx**2 + dy**2)**0.5  
                 if distance < new_radius * 5:  # 反発する範囲を設定  
-                    impulse = 500 * (1 - distance / (new_radius * 5))  
+                    # 反発する威力をボールの大きさに比例させる  
+                    impulse = impulse_base * impulse_multiplier * (1 - distance / (new_radius * 5))  
                     shape.body.apply_impulse_at_local_point((impulse * dx / distance, impulse * dy / distance))  
   
         return True  
 
 
 
+
   
 # create_ball関数内でボールのサイズを管理するための辞書を作成  
-sizes = [5, 10, 20, 30, 40, 50, 60, 80]  
+sizes = [5, 10, 20, 30, 40, 50, 75, 90]  
 size_to_next_size = {sizes[i]: sizes[i+1] for i in range(len(sizes)-1)}  
   
 # ボールを生成して物理空間に追加する関数  
