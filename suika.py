@@ -42,16 +42,27 @@ def merge_balls(arbiter, space, data):
         new_radius = size_to_next_size.get(ball_shape1.radius, ball_shape1.radius)  
         x = (ball_shape1.body.position.x + ball_shape2.body.position.x) / 2  
         y = (ball_shape1.body.position.y + ball_shape2.body.position.y) / 2  
-          
+  
         # 古いボールを削除する  
         space.remove(ball_shape1, ball_shape1.body)  
         space.remove(ball_shape2, ball_shape2.body)  
-          
+  
         # 新しいボールを作成し、物理空間に追加する  
         new_ball = create_ball(x, y, new_radius)  
         space.add(new_ball.body, new_ball)  
-          
+  
+        # 周囲のボールを反発させる  
+        for shape in space.shapes:  
+            if shape != new_ball:  
+                dx = shape.body.position.x - x  
+                dy = shape.body.position.y - y  
+                distance = (dx**2 + dy**2)**0.5  
+                if distance < new_radius * 5:  # 反発する範囲を設定  
+                    impulse = 500 * (1 - distance / (new_radius * 5))  
+                    shape.body.apply_impulse_at_local_point((impulse * dx / distance, impulse * dy / distance))  
+  
         return True  
+
 
 
   
