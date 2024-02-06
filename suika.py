@@ -17,12 +17,19 @@ space.gravity = (0, 900)  # 重力を下向きに設定
   
 # 描画用のユーティリティを設定  
 draw_options = pymunk.pygame_util.DrawOptions(screen)  
+wall_color = (0, 0, 0,255) 
 
 # 箱の作成  
-floor = pymunk.Segment(space.static_body, (50, 550), (550, 550), 5)  
-left_wall = pymunk.Segment(space.static_body, (50, 100), (50, 550), 5)  
-right_wall = pymunk.Segment(space.static_body, (550, 100), (550, 550), 5)  
-   
+# Create walls and set their color  
+floor = pymunk.Segment(space.static_body, (50, 500), (550, 500), 5)  
+floor.color = wall_color  
+  
+left_wall = pymunk.Segment(space.static_body, (50, 100), (50, 500), 5)  
+left_wall.color = wall_color  
+  
+right_wall = pymunk.Segment(space.static_body, (550, 100), (550, 500), 5)  
+right_wall.color = wall_color  
+
 # 壁と床の反発係数  
 floor.elasticity = 0.8  
 left_wall.elasticity = 0.8  
@@ -37,6 +44,14 @@ ball_id_counter = 0
 def merge_balls(arbiter, space, data):  
     # 衝突した2つのボールを取得  
     ball_shape1, ball_shape2 = arbiter.shapes  
+ 
+    # 最大サイズのボールかどうか確認  
+    if ball_shape1.radius == sizes[-1] and ball_shape2.radius == sizes[-1]:  
+        # 両方のボールを物理空間から削除する  
+        space.remove(ball_shape1, ball_shape1.body)  
+        space.remove(ball_shape2, ball_shape2.body)  
+        return False  # これ以上の処理は行わない  
+
     if ball_shape1.radius == ball_shape2.radius:  
         # 合体して新しいボールを作成する  
         new_radius = size_to_next_size.get(ball_shape1.radius, ball_shape1.radius)  
@@ -79,6 +94,23 @@ size_to_next_size = {sizes[i]: sizes[i+1] for i in range(len(sizes)-1)}
   
 # ボールを生成して物理空間に追加する関数  
 def create_ball(x, y, radius):  
+    global ball_id_counter 
+    global sizes  # Make sure to use the global 'sizes' list
+      # 果物を参考にした色のリスト  
+    fruit_colors = [  
+        (255, 0, 0, 255),    # りんご（赤）  
+        (255, 165, 0, 255),  # オレンジ  
+        (255, 255, 0, 255),  # バナナ（黄色）  
+        (0, 128, 0, 255),    # キウイ（緑）  
+        (255, 20, 147, 255), # イチゴ（ピンク）  
+        (0, 255, 255, 255),  # ブルーベリー（シアン）  
+        (128, 0, 128, 255),  # ブドウ（紫）  
+        (255, 140, 0, 255)   # パパイア（橙）
+    ]  
+  
+    # サイズに応じた色を設定  
+    color = fruit_colors[sizes.index(radius) % len(fruit_colors)]  
+  
     global ball_id_counter  
     # ボールが合体してサイズが大きくなった場合、次のサイズを決定する  
     if radius in size_to_next_size:  
@@ -91,6 +123,7 @@ def create_ball(x, y, radius):
     body = pymunk.Body(mass, inertia)  
     body.position = x, y  
     shape = pymunk.Circle(body, new_radius)  
+    shape.color = color   # ボールの色を設定  
     shape.elasticity = 0.8  
     shape.collision_type = 1  
     shape.ball_id = ball_id_counter  
@@ -117,8 +150,8 @@ while running:
                 # マウスクリックでボールを生成  
         # マウスクリックでボールを生成する部分の変更  
         if event.type == pygame.MOUSEBUTTONDOWN:  
-            # 8種類の大きさのボールからランダムに選ぶ  
-            sizes = [5, 10, 15, 20, 25, 30, 35, 40]  # ボールの半径の例  
+            
+             
             radius = random.choice(sizes)  # ランダムにサイズを選択  
             x, _ = pygame.mouse.get_pos()  # クリックした位置のX座標を取得  
             # クリックされたX座標が箱の範囲外の場合、範囲内に制限する  
@@ -131,8 +164,20 @@ while running:
   
     # 描画  
     screen.fill((255, 255, 255))  # 背景を白でクリア  
-    space.debug_draw(draw_options)  # 物理オブジェクトを描画  
+    space.debug_draw(draw_options)
+    
+    # 追加したボールの描画処理  
+    for shape in space.shapes:  
+        if isinstance(shape, pymunk.Circle):  
+            # shape.colorが設定されていない場合はデフォルトの色を使用  
+            color = getattr(shape, 'color', (0, 0, 0))  
+            # Pygameは座標を整数で扱うため、intにキャスト  
+            position = int(shape.body.position.x), int(shape.body.position.y)  
+            pygame.draw.circle(screen, color, position, int(shape.radius))
+    
+    #space.debug_draw(draw_options)  # 物理オブジェクトを描画  
     pygame.display.flip()  
+
   
     # FPSを60に設定  
     clock.tick(60)  
