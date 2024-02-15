@@ -19,6 +19,10 @@ space.gravity = (0, 900)  # 重力を下向きに設定
 draw_options = pymunk.pygame_util.DrawOptions(screen)  
 wall_color = (0, 0, 0,255) 
 
+# 背景画像の読み込み  
+background_image = pygame.image.load("background.png")  
+background_image = pygame.transform.scale(background_image, (width, height))  
+
 # 箱の作成  
 # Create walls and set their color  
 floor = pymunk.Segment(space.static_body, (50, 500), (550, 500), 5)  
@@ -40,10 +44,15 @@ space.add(floor, left_wall, right_wall)
 
 # ボールにIDを割り当てるためのグローバル変数  
 ball_id_counter = 0  
-  
+# スコアを保持するグローバル変数  
+score = 0  
+
 def merge_balls(arbiter, space, data):  
     # 衝突した2つのボールを取得  
     ball_shape1, ball_shape2 = arbiter.shapes  
+    global score  # スコアのグローバル変数を使用 
+
+    size_to_score = {  5: 10, 10: 20, 20: 30, 30: 50, 40: 80, 50: 100, 75: 200, 90: 400 }   
  
     # 最大サイズのボールかどうか確認  
     if ball_shape1.radius == sizes[-1] and ball_shape2.radius == sizes[-1]:  
@@ -54,6 +63,7 @@ def merge_balls(arbiter, space, data):
 
     if ball_shape1.radius == ball_shape2.radius:  
         # 合体して新しいボールを作成する  
+        score += size_to_score.get(ball_shape1.radius, 0) 
         new_radius = size_to_next_size.get(ball_shape1.radius, ball_shape1.radius)  
         x = (ball_shape1.body.position.x + ball_shape2.body.position.x) / 2  
         y = (ball_shape1.body.position.y + ball_shape2.body.position.y) / 2  
@@ -63,7 +73,7 @@ def merge_balls(arbiter, space, data):
         space.remove(ball_shape2, ball_shape2.body)  
   
         # 新しいボールを作成する際の反発威力を、ボールの大きさに比例させる  
-        impulse_base = 50  # 基本となる反発威力  
+        impulse_base = 1000  # 基本となる反発威力  
         impulse_multiplier = new_radius / sizes[0]  # ボールの大きさに比例する係数  
         impulse = impulse_base * impulse_multiplier  # 最終的な反発威力  
   
@@ -131,40 +141,90 @@ def create_ball(x, y, radius):
     space.add(body, shape)  
     return shape  
 
+# ゲームオーバーの状態を保持する変数  
+game_over = False  
+def check_game_over(space):  
+    global game_over  
+    for shape in space.shapes:  
+        if isinstance(shape, pymunk.Circle):  
+            # ボールが床より下にあるかチェック  
+            if shape.body.position.y - shape.radius > height:  
+                game_over = True  
+                return True  # ゲームオーバー  
+    return False  # ゲーム続行  
 
+# ゲームオーバー画面の表示とエンターキー待機処理  
+def show_game_over_screen(screen):  
+    screen.fill((0, 0, 0))  # 画面を黒でクリア  
+    font = pygame.font.Font(None, 72)  # ゲームオーバー表示用のフォント  
+    game_over_text = font.render("Game Over", True, (255, 255, 255))  
+    game_over_rect = game_over_text.get_rect(center=(width // 2, height // 2))  
+    screen.blit(game_over_text, game_over_rect)  
+    pygame.display.flip()  # 画面を更新  
   
+    waiting = True  
+    while waiting:  
+        for event in pygame.event.get():  
+            if event.type == pygame.QUIT:  
+                waiting = False  
+                pygame.quit()  
+                exit()  # プログラムを終了  
+            if event.type == pygame.KEYDOWN:  
+                if event.key == pygame.K_RETURN:  # エンターキーが押されたら  
+                    waiting = False  
+
+
 # 衝突ハンドラーを設定  
 collision_handler = space.add_collision_handler(1, 1)  
 collision_handler.post_solve = merge_balls  
   
-# ゲームループと他の部分は変更なし  
-
-
 # ゲームループ  
 running = True  
 clock = pygame.time.Clock()  
-while running:  
+font = pygame.font.Font(None, 36)  # スコア表示用のフォント  
+while running:
+    if check_game_over(space):  
+    # ゲームオーバーの場合、ループを抜ける  
+         break  
     for event in pygame.event.get():  
+    
+        
         if event.type == pygame.QUIT:  
             running = False  
                 # マウスクリックでボールを生成  
         # マウスクリックでボールを生成する部分の変更  
-        if event.type == pygame.MOUSEBUTTONDOWN:  
-            
-             
+        if event.type == pygame.MOUSEBUTTONDOWN:    
             radius = random.choice(sizes)  # ランダムにサイズを選択  
             x, _ = pygame.mouse.get_pos()  # クリックした位置のX座標を取得  
             # クリックされたX座標が箱の範囲外の場合、範囲内に制限する  
             x = max(50 + radius, min(x, 550 - radius))  
             create_ball(x, 100, radius)  # Y座標は固定の値を使用  
-  
-                
-    # 物理シミュレーションを進める  
+    # ゲームループ後  
+    if game_over:  
+        show_game_over_screen(screen)  
+        # ここにゲームをリスタートするか、終了するかの処理を追加する  
+    # 描画    
+    screen.blit(background_image, (0, 0))  # 背景画像を描画  
+    space.debug_draw(draw_options)
+
+    # スコアの表示位置を変更 (例: 画面の右上に表示)  
+    
+    # スコア表示用のテキストを生成  
+    score_text = font.render(f"Score: {score}", True, (255, 255, 255))  # 白色のテキスト  
+    score_text_rect = score_text.get_rect(topright=(width - 10, 10))  # 右上に配置  
+    
+    # スコアの背景を描画 (半透明の黒色の長方形)  
+    score_background = pygame.Surface((score_text_rect.width, score_text_rect.height))  
+    score_background.set_alpha(0)  # 半透明度を設定 (0-255 の範囲、255 が不透明)  
+    score_background.fill((0, 0, 0))  # 黒色で塗りつぶし  
+    screen.blit(score_background, score_text_rect)  # スコアの背景を描画  
+    
+    # スコアのテキストを描画  
+    screen.blit(score_text, score_text_rect)         
+    # 物理シミュレーションを進める 
     space.step(1/50)  
   
-    # 描画  
-    screen.fill((255, 255, 255))  # 背景を白でクリア  
-    space.debug_draw(draw_options)
+   
     
     # 追加したボールの描画処理  
     for shape in space.shapes:  
@@ -175,7 +235,7 @@ while running:
             position = int(shape.body.position.x), int(shape.body.position.y)  
             pygame.draw.circle(screen, color, position, int(shape.radius))
     
-    #space.debug_draw(draw_options)  # 物理オブジェクトを描画  
+
     pygame.display.flip()  
 
   
